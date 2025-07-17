@@ -13,7 +13,7 @@ use std::{hash::Hash, num::NonZeroUsize};
 ///
 /// Each message sent via the [`UnboundedSender`] will be delivered to one of the [`UnboundedReceiver`]s in a deterministic manner based
 /// on the hash of the ID provided to the [`send`](UnboundedSender::send) method.
-pub fn unsticky_channel<ID, T>(
+pub fn unbounded_sticky_channel<ID, T>(
     num_consumers: NonZeroUsize,
 ) -> (UnboundedSender<ID, T>, Vec<UnboundedReceiver<T>>)
 where

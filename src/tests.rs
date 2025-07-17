@@ -2,11 +2,12 @@ use std::{collections::HashMap, num::NonZeroUsize, sync::Arc, time::Duration};
 
 use tokio::sync::Barrier;
 
-use crate::{SendError, TryRecvError, sticky_channel, unsticky_channel};
+use crate::{SendError, TryRecvError, sticky_channel, unbounded_sticky_channel};
 
 #[tokio::test]
 async fn test_deterministic_routing_with_large_dataset() {
-    let (sender, mut receivers) = unsticky_channel::<u64, u64>(NonZeroUsize::new(5).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<u64, u64>(NonZeroUsize::new(5).unwrap());
 
     let test_data: Vec<u64> = (0..1000).collect();
     let mut routing_table: HashMap<u64, usize> = HashMap::new();
@@ -40,7 +41,8 @@ async fn test_deterministic_routing_with_large_dataset() {
 
 #[tokio::test]
 async fn test_single_consumer_channel() {
-    let (sender, mut receivers) = unsticky_channel::<i32, &str>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, &str>(NonZeroUsize::new(1).unwrap());
 
     assert_eq!(receivers.len(), 1);
 
@@ -56,7 +58,7 @@ async fn test_single_consumer_channel() {
 
 #[tokio::test]
 async fn test_multiple_consumer_channel() {
-    let (sender, receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(3).unwrap());
+    let (sender, receivers) = unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(3).unwrap());
 
     assert_eq!(receivers.len(), 3);
 
@@ -78,7 +80,8 @@ async fn test_multiple_consumer_channel() {
 
 #[tokio::test]
 async fn test_message_routing_consistency() {
-    let (sender, mut receivers) = unsticky_channel::<String, i32>(NonZeroUsize::new(4).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<String, i32>(NonZeroUsize::new(4).unwrap());
 
     let test_ids = vec!["user1", "user2", "user3", "user1", "user2", "user1"];
     let mut routing_map: HashMap<String, usize> = HashMap::new();
@@ -111,7 +114,8 @@ async fn test_message_routing_consistency() {
 
 #[tokio::test]
 async fn test_distribution_across_receivers() {
-    let (sender, mut receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(3).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(3).unwrap());
 
     for i in 0..100 {
         sender.send(&i, i).unwrap();
@@ -141,7 +145,8 @@ async fn test_custom_hashable_types() {
         tenant: String,
     }
 
-    let (sender, receivers) = unsticky_channel::<UserId, String>(NonZeroUsize::new(2).unwrap());
+    let (sender, receivers) =
+        unbounded_sticky_channel::<UserId, String>(NonZeroUsize::new(2).unwrap());
 
     let user1 = UserId {
         id: 1,
@@ -177,7 +182,7 @@ async fn test_custom_hashable_types() {
 
 #[tokio::test]
 async fn test_send_after_receiver_dropped() {
-    let (sender, receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(2).unwrap());
+    let (sender, receivers) = unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(2).unwrap());
 
     drop(receivers);
 
@@ -190,7 +195,8 @@ async fn test_send_after_receiver_dropped() {
 
 #[tokio::test]
 async fn test_try_recv_empty_channel() {
-    let (sender, mut receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
     let result = receivers[0].try_recv();
     assert!(matches!(result, Err(TryRecvError::Empty)));
@@ -200,7 +206,8 @@ async fn test_try_recv_empty_channel() {
 
 #[tokio::test]
 async fn test_try_recv_disconnected_channel() {
-    let (sender, mut receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
     drop(sender);
 
@@ -210,7 +217,8 @@ async fn test_try_recv_disconnected_channel() {
 
 #[tokio::test]
 async fn test_send_after_all_receivers_dropped() {
-    let (sender, receivers) = unsticky_channel::<String, String>(NonZeroUsize::new(3).unwrap());
+    let (sender, receivers) =
+        unbounded_sticky_channel::<String, String>(NonZeroUsize::new(3).unwrap());
 
     sender
         .send(&"test".to_string(), "message1".to_string())
@@ -224,7 +232,8 @@ async fn test_send_after_all_receivers_dropped() {
 
 #[tokio::test]
 async fn test_recv_method() {
-    let (sender, mut receivers) = unsticky_channel::<i32, String>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, String>(NonZeroUsize::new(1).unwrap());
 
     sender.send(&42, "test_message".to_string()).unwrap();
     drop(sender);
@@ -238,7 +247,8 @@ async fn test_recv_method() {
 
 #[tokio::test]
 async fn test_recv_many_method() {
-    let (sender, mut receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
     for i in 0..10 {
         sender.send(&0, i).unwrap();
@@ -261,7 +271,8 @@ async fn test_recv_many_method() {
 
 #[tokio::test]
 async fn test_try_recv_success() {
-    let (sender, mut receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
     sender.send(&42, 100).unwrap();
 
@@ -274,7 +285,8 @@ async fn test_try_recv_success() {
 
 #[tokio::test]
 async fn test_receiver_close_method() {
-    let (sender, mut receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
     sender.send(&42, 100).unwrap();
     sender.send(&42, 200).unwrap();
@@ -296,7 +308,7 @@ async fn test_receiver_close_method() {
 
 #[tokio::test]
 async fn test_multiple_senders_concurrent() {
-    let (sender, receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(3).unwrap());
+    let (sender, receivers) = unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(3).unwrap());
 
     let sender1 = sender.clone();
     let sender2 = sender.clone();
@@ -342,7 +354,7 @@ async fn test_multiple_senders_concurrent() {
 
 #[tokio::test]
 async fn test_concurrent_receivers() {
-    let (sender, receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(4).unwrap());
+    let (sender, receivers) = unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(4).unwrap());
 
     for i in 0..1000 {
         sender.send(&i, i).unwrap();
@@ -370,7 +382,8 @@ async fn test_concurrent_receivers() {
 
 #[tokio::test]
 async fn test_cancel_safety_with_select() {
-    let (sender, mut receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
     sender.send(&42, 100).unwrap();
 
@@ -393,7 +406,7 @@ async fn test_cancel_safety_with_select() {
 
 #[tokio::test]
 async fn test_zero_sized_messages() {
-    let (sender, receivers) = unsticky_channel::<i32, ()>(NonZeroUsize::new(2).unwrap());
+    let (sender, receivers) = unbounded_sticky_channel::<i32, ()>(NonZeroUsize::new(2).unwrap());
 
     for i in 0..10 {
         sender.send(&i, ()).unwrap();
@@ -412,7 +425,8 @@ async fn test_zero_sized_messages() {
 
 #[tokio::test]
 async fn test_large_messages() {
-    let (sender, mut receivers) = unsticky_channel::<i32, Vec<u8>>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, Vec<u8>>(NonZeroUsize::new(1).unwrap());
 
     let large_data = vec![42u8; 10_000];
     sender.send(&1, large_data.clone()).unwrap();
@@ -426,11 +440,11 @@ async fn test_large_messages() {
 #[tokio::test]
 async fn test_nonzero_usize_boundary() {
     let min_consumers = NonZeroUsize::new(1).unwrap();
-    let (sender1, receivers1) = unsticky_channel::<i32, i32>(min_consumers);
+    let (sender1, receivers1) = unbounded_sticky_channel::<i32, i32>(min_consumers);
     assert_eq!(receivers1.len(), 1);
 
     let large_consumers = NonZeroUsize::new(1000).unwrap();
-    let (sender2, receivers2) = unsticky_channel::<i32, i32>(large_consumers);
+    let (sender2, receivers2) = unbounded_sticky_channel::<i32, i32>(large_consumers);
     assert_eq!(receivers2.len(), 1000);
 
     sender1.send(&42, 100).unwrap();
@@ -439,7 +453,8 @@ async fn test_nonzero_usize_boundary() {
 
 #[tokio::test]
 async fn test_string_id_distribution() {
-    let (sender, mut receivers) = unsticky_channel::<String, i32>(NonZeroUsize::new(10).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<String, i32>(NonZeroUsize::new(10).unwrap());
 
     let test_strings = vec![
         "short",
@@ -473,7 +488,8 @@ async fn test_string_id_distribution() {
 
 #[tokio::test]
 async fn test_recv_many_edge_cases() {
-    let (sender, mut receivers) = unsticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
+    let (sender, mut receivers) =
+        unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
     sender.send(&0, 1).unwrap();
     sender.send(&0, 2).unwrap();

@@ -20,13 +20,13 @@ stateful processing.
 ### Unbounded Sticky Channel
 
 ```rust
-use tokio_sticky_channel::unsticky_channel;
+use tokio_sticky_channel::unbounded_sticky_channel;
 use std::num::NonZeroUsize;
 
 #[tokio::main]
 async fn main() {
     // Create an unbounded sticky channel with 3 consumers
-    let (sender, mut receivers) = unsticky_channel::<String, i32>(
+    let (sender, mut receivers) = unbounded_sticky_channel::<String, i32>(
         NonZeroUsize::new(3).unwrap()
     );
 
