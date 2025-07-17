@@ -1,6 +1,6 @@
 [package]
 name = "tokio-sticky-channel"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Devashish Dixit <devashishdxt@gmail.com>"]
 license = "MIT/Apache-2.0"
 description = "Sticky channel pattern for Tokio - routes messages to specific receivers based on ID hash for consistent message delivery"
