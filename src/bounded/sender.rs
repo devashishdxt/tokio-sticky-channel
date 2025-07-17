@@ -1,4 +1,4 @@
-use std::hash::BuildHasher;
+use std::hash::{BuildHasher, RandomState};
 
 use tokio::sync::mpsc::Sender as MpscSender;
 
@@ -6,7 +6,7 @@ use crate::{SendError, util::compute_route_id};
 
 /// Send values to the associated [`Receiver`](crate::Receiver).
 #[derive(Clone)]
-pub struct Sender<ID, T, S> {
+pub struct Sender<ID, T, S = RandomState> {
     pub(crate) consumers: Vec<MpscSender<T>>,
     pub(crate) build_hasher: S,
     pub(crate) _phantom: std::marker::PhantomData<ID>,

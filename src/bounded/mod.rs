@@ -23,7 +23,7 @@ use std::{
 pub fn sticky_channel<ID, T>(
     num_consumers: NonZeroUsize,
     capacity: usize,
-) -> (Sender<ID, T, RandomState>, Vec<Receiver<T>>)
+) -> (Sender<ID, T>, Vec<Receiver<T>>)
 where
     ID: Hash,
 {

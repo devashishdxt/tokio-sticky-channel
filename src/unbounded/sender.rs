@@ -1,4 +1,4 @@
-use std::hash::{BuildHasher, Hash};
+use std::hash::{BuildHasher, Hash, RandomState};
 
 use tokio::sync::mpsc::UnboundedSender as MpscSender;
 
@@ -6,7 +6,7 @@ use crate::{SendError, util::compute_route_id};
 
 /// Send values to the associated [`UnboundedReceiver`](crate::UnboundedReceiver).
 #[derive(Clone)]
-pub struct UnboundedSender<ID, T, S> {
+pub struct UnboundedSender<ID, T, S = RandomState> {
     pub(crate) consumers: Vec<MpscSender<T>>,
     pub(crate) build_hasher: S,
     pub(crate) _phantom: std::marker::PhantomData<ID>,

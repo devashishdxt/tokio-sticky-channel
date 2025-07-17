@@ -18,10 +18,7 @@ use std::{
 /// on the hash of the ID provided to the [`send`](UnboundedSender::send) method.
 pub fn unbounded_sticky_channel<ID, T>(
     num_consumers: NonZeroUsize,
-) -> (
-    UnboundedSender<ID, T, RandomState>,
-    Vec<UnboundedReceiver<T>>,
-)
+) -> (UnboundedSender<ID, T>, Vec<UnboundedReceiver<T>>)
 where
     ID: Hash,
 {
