@@ -5,7 +5,6 @@ use tokio::sync::mpsc::UnboundedSender as MpscSender;
 use crate::{SendError, util::compute_route_id};
 
 /// Send values to the associated [`UnboundedReceiver`](crate::UnboundedReceiver).
-#[derive(Clone)]
 pub struct UnboundedSender<ID, T, S = RandomState> {
     pub(crate) consumers: Vec<MpscSender<T>>,
     pub(crate) build_hasher: S,
@@ -34,6 +33,19 @@ where
                 None => Err(SendError::NoConsumer(message)),
             },
             Err(_) => Err(SendError::FailedToComputeRouteID(message)),
+        }
+    }
+}
+
+impl<ID, T, S> Clone for UnboundedSender<ID, T, S>
+where
+    S: Clone,
+{
+    fn clone(&self) -> Self {
+        UnboundedSender {
+            consumers: self.consumers.clone(),
+            build_hasher: self.build_hasher.clone(),
+            _phantom: std::marker::PhantomData,
         }
     }
 }

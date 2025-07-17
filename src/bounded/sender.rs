@@ -5,7 +5,6 @@ use tokio::sync::mpsc::Sender as MpscSender;
 use crate::{SendError, util::compute_route_id};
 
 /// Send values to the associated [`Receiver`](crate::Receiver).
-#[derive(Clone)]
 pub struct Sender<ID, T, S = RandomState> {
     pub(crate) consumers: Vec<MpscSender<T>>,
     pub(crate) build_hasher: S,
@@ -58,6 +57,19 @@ where
                 None => Err(SendError::NoConsumer(message)),
             },
             Err(_) => Err(SendError::FailedToComputeRouteID(message)),
+        }
+    }
+}
+
+impl<ID, T, S> Clone for Sender<ID, T, S>
+where
+    S: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            consumers: self.consumers.clone(),
+            build_hasher: self.build_hasher.clone(),
+            _phantom: std::marker::PhantomData,
         }
     }
 }
