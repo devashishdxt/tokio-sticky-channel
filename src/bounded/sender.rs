@@ -48,12 +48,14 @@ where
     pub fn try_send(&self, id: &ID, message: T) -> Result<(), SendError<T>> {
         match compute_route_id(id, self.consumers.len()) {
             Ok(route_id) => match self.consumers.get(route_id) {
-                Some(sender) => sender
-                    .try_send(message)
-                    .map_err(|err| match err {
-                        tokio::sync::mpsc::error::TrySendError::Full(msg) => SendError::ChannelFull(msg),
-                        tokio::sync::mpsc::error::TrySendError::Closed(msg) => SendError::ChannelClosed(msg),
-                    }),
+                Some(sender) => sender.try_send(message).map_err(|err| match err {
+                    tokio::sync::mpsc::error::TrySendError::Full(msg) => {
+                        SendError::ChannelFull(msg)
+                    }
+                    tokio::sync::mpsc::error::TrySendError::Closed(msg) => {
+                        SendError::ChannelClosed(msg)
+                    }
+                }),
                 None => Err(SendError::NoConsumer(message)),
             },
             Err(_) => Err(SendError::FailedToComputeRouteID(message)),
