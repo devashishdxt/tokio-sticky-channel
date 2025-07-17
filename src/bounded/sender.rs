@@ -1,22 +1,21 @@
-use std::{
-    hash::{DefaultHasher, Hash, Hasher},
-    num::TryFromIntError,
-};
+use std::hash::BuildHasher;
 
 use tokio::sync::mpsc::Sender as MpscSender;
 
-use crate::SendError;
+use crate::{SendError, util::compute_route_id};
 
 /// Send values to the associated [`Receiver`](crate::Receiver).
 #[derive(Clone)]
-pub struct Sender<ID, T> {
+pub struct Sender<ID, T, S> {
     pub(crate) consumers: Vec<MpscSender<T>>,
+    pub(crate) build_hasher: S,
     pub(crate) _phantom: std::marker::PhantomData<ID>,
 }
 
-impl<ID, T> Sender<ID, T>
+impl<ID, T, S> Sender<ID, T, S>
 where
     ID: core::hash::Hash,
+    S: BuildHasher,
 {
     /// Attempts to send a message to the consumer identified by `id`.
     ///
@@ -26,7 +25,7 @@ where
     /// the [`Receiver`](crate::Receiver) having been dropped, this function returns an error. The error includes the
     /// value passed to `send`.
     pub async fn send(&self, id: &ID, message: T) -> Result<(), SendError<T>> {
-        match compute_route_id(id, self.consumers.len()) {
+        match compute_route_id(id, self.consumers.len(), &self.build_hasher) {
             Ok(route_id) => match self.consumers.get(route_id) {
                 Some(sender) => sender
                     .send(message)
@@ -46,7 +45,7 @@ where
     /// the [`Receiver`](crate::Receiver) having been dropped, this function returns an error. The error includes the
     /// value passed to `try_send`.
     pub fn try_send(&self, id: &ID, message: T) -> Result<(), SendError<T>> {
-        match compute_route_id(id, self.consumers.len()) {
+        match compute_route_id(id, self.consumers.len(), &self.build_hasher) {
             Ok(route_id) => match self.consumers.get(route_id) {
                 Some(sender) => sender.try_send(message).map_err(|err| match err {
                     tokio::sync::mpsc::error::TrySendError::Full(msg) => {
@@ -61,15 +60,4 @@ where
             Err(_) => Err(SendError::FailedToComputeRouteID(message)),
         }
     }
-}
-
-fn compute_route_id<ID>(id: &ID, num_consumers: usize) -> Result<usize, TryFromIntError>
-where
-    ID: Hash,
-{
-    let mut hasher = DefaultHasher::new();
-    id.hash(&mut hasher);
-    let hash = usize::try_from(hasher.finish())?;
-
-    Ok(hash % num_consumers)
 }

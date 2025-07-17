@@ -1,22 +1,21 @@
-use std::{
-    hash::{DefaultHasher, Hash, Hasher},
-    num::TryFromIntError,
-};
+use std::hash::{BuildHasher, Hash};
 
 use tokio::sync::mpsc::UnboundedSender as MpscSender;
 
-use crate::SendError;
+use crate::{SendError, util::compute_route_id};
 
 /// Send values to the associated [`UnboundedReceiver`](crate::UnboundedReceiver).
 #[derive(Clone)]
-pub struct UnboundedSender<ID, T> {
+pub struct UnboundedSender<ID, T, S> {
     pub(crate) consumers: Vec<MpscSender<T>>,
+    pub(crate) build_hasher: S,
     pub(crate) _phantom: std::marker::PhantomData<ID>,
 }
 
-impl<ID, T> UnboundedSender<ID, T>
+impl<ID, T, S> UnboundedSender<ID, T, S>
 where
-    ID: core::hash::Hash,
+    ID: Hash,
+    S: BuildHasher,
 {
     /// Attempts to send a message to the consumer identified by `id` without blocking.
     ///
@@ -27,7 +26,7 @@ where
     /// the [`UnboundedReceiver`](crate::UnboundedReceiver) having been dropped, this function returns an error. The error includes the
     /// value passed to `send`.
     pub fn send(&self, id: &ID, message: T) -> Result<(), SendError<T>> {
-        match compute_route_id(id, self.consumers.len()) {
+        match compute_route_id(id, self.consumers.len(), &self.build_hasher) {
             Ok(route_id) => match self.consumers.get(route_id) {
                 Some(sender) => sender
                     .send(message)
@@ -37,15 +36,4 @@ where
             Err(_) => Err(SendError::FailedToComputeRouteID(message)),
         }
     }
-}
-
-fn compute_route_id<ID>(id: &ID, num_consumers: usize) -> Result<usize, TryFromIntError>
-where
-    ID: Hash,
-{
-    let mut hasher = DefaultHasher::new();
-    id.hash(&mut hasher);
-    let hash = usize::try_from(hasher.finish())?;
-
-    Ok(hash % num_consumers)
 }

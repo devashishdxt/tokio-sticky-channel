@@ -96,12 +96,16 @@
 mod bounded;
 mod error;
 mod unbounded;
+mod util;
 
 #[cfg(test)]
 mod tests;
 
 pub use self::{
-    bounded::{Receiver, Sender, sticky_channel},
+    bounded::{Receiver, Sender, sticky_channel, sticky_channel_with_hasher},
     error::{SendError, TryRecvError},
-    unbounded::{UnboundedReceiver, UnboundedSender, unbounded_sticky_channel},
+    unbounded::{
+        UnboundedReceiver, UnboundedSender, unbounded_sticky_channel,
+        unbounded_sticky_channel_with_hasher,
+    },
 };
