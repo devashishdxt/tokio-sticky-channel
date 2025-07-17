@@ -13,7 +13,7 @@ async fn test_deterministic_routing_with_large_dataset() {
     let mut routing_table: HashMap<u64, usize> = HashMap::new();
 
     for &id in &test_data {
-        sender.send(&id, id).unwrap();
+        sender.send(id, id).unwrap();
     }
 
     drop(sender);
@@ -46,8 +46,8 @@ async fn test_single_consumer_channel() {
 
     assert_eq!(receivers.len(), 1);
 
-    sender.send(&42, "hello").unwrap();
-    sender.send(&100, "world").unwrap();
+    sender.send(42, "hello").unwrap();
+    sender.send(100, "world").unwrap();
 
     let msg1 = receivers[0].recv().await.unwrap();
     let msg2 = receivers[0].recv().await.unwrap();
@@ -63,7 +63,7 @@ async fn test_multiple_consumer_channel() {
     assert_eq!(receivers.len(), 3);
 
     for i in 0..10 {
-        sender.send(&i, i * 10).unwrap();
+        sender.send(i, i * 10).unwrap();
     }
 
     drop(sender);
@@ -81,13 +81,13 @@ async fn test_multiple_consumer_channel() {
 #[tokio::test]
 async fn test_message_routing_consistency() {
     let (sender, mut receivers) =
-        unbounded_sticky_channel::<String, i32>(NonZeroUsize::new(4).unwrap());
+        unbounded_sticky_channel::<&str, i32>(NonZeroUsize::new(4).unwrap());
 
     let test_ids = vec!["user1", "user2", "user3", "user1", "user2", "user1"];
     let mut routing_map: HashMap<String, usize> = HashMap::new();
 
     for (i, id) in test_ids.iter().enumerate() {
-        sender.send(&id.to_string(), i as i32).unwrap();
+        sender.send(&id, i as i32).unwrap();
     }
 
     drop(sender);
@@ -118,7 +118,7 @@ async fn test_distribution_across_receivers() {
         unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(3).unwrap());
 
     for i in 0..100 {
-        sender.send(&i, i).unwrap();
+        sender.send(i, i).unwrap();
     }
 
     drop(sender);
@@ -146,7 +146,7 @@ async fn test_custom_hashable_types() {
     }
 
     let (sender, receivers) =
-        unbounded_sticky_channel::<UserId, String>(NonZeroUsize::new(2).unwrap());
+        unbounded_sticky_channel::<&UserId, String>(NonZeroUsize::new(2).unwrap());
 
     let user1 = UserId {
         id: 1,
@@ -186,7 +186,7 @@ async fn test_send_after_receiver_dropped() {
 
     drop(receivers);
 
-    let result = sender.send(&42, 100);
+    let result = sender.send(42, 100);
     assert!(matches!(result, Err(SendError::ChannelClosed(_))));
     if let Err(SendError::ChannelClosed(value)) = result {
         assert_eq!(value, 100);
@@ -218,11 +218,9 @@ async fn test_try_recv_disconnected_channel() {
 #[tokio::test]
 async fn test_send_after_all_receivers_dropped() {
     let (sender, receivers) =
-        unbounded_sticky_channel::<String, String>(NonZeroUsize::new(3).unwrap());
+        unbounded_sticky_channel::<&str, String>(NonZeroUsize::new(3).unwrap());
 
-    sender
-        .send(&"test".to_string(), "message1".to_string())
-        .unwrap();
+    sender.send("test", "message1".to_string()).unwrap();
 
     drop(receivers);
 
@@ -235,7 +233,7 @@ async fn test_recv_method() {
     let (sender, mut receivers) =
         unbounded_sticky_channel::<i32, String>(NonZeroUsize::new(1).unwrap());
 
-    sender.send(&42, "test_message".to_string()).unwrap();
+    sender.send(42, "test_message".to_string()).unwrap();
     drop(sender);
 
     let message = receivers[0].recv().await;
@@ -251,7 +249,7 @@ async fn test_recv_many_method() {
         unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
     for i in 0..10 {
-        sender.send(&0, i).unwrap();
+        sender.send(0, i).unwrap();
     }
     drop(sender);
 
@@ -274,7 +272,7 @@ async fn test_try_recv_success() {
     let (sender, mut receivers) =
         unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
-    sender.send(&42, 100).unwrap();
+    sender.send(42, 100).unwrap();
 
     let result = receivers[0].try_recv();
     assert_eq!(result.unwrap(), 100);
@@ -288,12 +286,12 @@ async fn test_receiver_close_method() {
     let (sender, mut receivers) =
         unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
-    sender.send(&42, 100).unwrap();
-    sender.send(&42, 200).unwrap();
+    sender.send(42, 100).unwrap();
+    sender.send(42, 200).unwrap();
 
     receivers[0].close();
 
-    let result1 = sender.send(&42, 300);
+    let result1 = sender.send(42, 300);
     assert!(matches!(result1, Err(SendError::ChannelClosed(_))));
 
     let msg1 = receivers[0].recv().await;
@@ -320,7 +318,7 @@ async fn test_multiple_senders_concurrent() {
     let task1 = tokio::spawn(async move {
         barrier1.wait().await;
         for i in 0..100 {
-            sender1.send(&(i * 3), i * 3).unwrap();
+            sender1.send(i * 3, i * 3).unwrap();
         }
     });
 
@@ -328,7 +326,7 @@ async fn test_multiple_senders_concurrent() {
     let task2 = tokio::spawn(async move {
         barrier2.wait().await;
         for i in 0..100 {
-            sender2.send(&(i * 3 + 1), i * 3 + 1).unwrap();
+            sender2.send(i * 3 + 1, i * 3 + 1).unwrap();
         }
     });
 
@@ -336,7 +334,7 @@ async fn test_multiple_senders_concurrent() {
     let task3 = tokio::spawn(async move {
         barrier3.wait().await;
         for i in 0..100 {
-            sender3.send(&(i * 3 + 2), i * 3 + 2).unwrap();
+            sender3.send(i * 3 + 2, i * 3 + 2).unwrap();
         }
     });
 
@@ -357,7 +355,7 @@ async fn test_concurrent_receivers() {
     let (sender, receivers) = unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(4).unwrap());
 
     for i in 0..1000 {
-        sender.send(&i, i).unwrap();
+        sender.send(i, i).unwrap();
     }
     drop(sender);
 
@@ -385,7 +383,7 @@ async fn test_cancel_safety_with_select() {
     let (sender, mut receivers) =
         unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
-    sender.send(&42, 100).unwrap();
+    sender.send(42, 100).unwrap();
 
     let result = tokio::select! {
         msg = receivers[0].recv() => Some(msg),
@@ -394,7 +392,7 @@ async fn test_cancel_safety_with_select() {
 
     assert_eq!(result, Some(Some(100)));
 
-    sender.send(&42, 200).unwrap();
+    sender.send(42, 200).unwrap();
     drop(sender);
 
     let msg2 = receivers[0].recv().await;
@@ -409,7 +407,7 @@ async fn test_zero_sized_messages() {
     let (sender, receivers) = unbounded_sticky_channel::<i32, ()>(NonZeroUsize::new(2).unwrap());
 
     for i in 0..10 {
-        sender.send(&i, ()).unwrap();
+        sender.send(i, ()).unwrap();
     }
     drop(sender);
 
@@ -429,7 +427,7 @@ async fn test_large_messages() {
         unbounded_sticky_channel::<i32, Vec<u8>>(NonZeroUsize::new(1).unwrap());
 
     let large_data = vec![42u8; 10_000];
-    sender.send(&1, large_data.clone()).unwrap();
+    sender.send(1, large_data.clone()).unwrap();
     drop(sender);
 
     let received = receivers[0].recv().await.unwrap();
@@ -447,14 +445,14 @@ async fn test_nonzero_usize_boundary() {
     let (sender2, receivers2) = unbounded_sticky_channel::<i32, i32>(large_consumers);
     assert_eq!(receivers2.len(), 1000);
 
-    sender1.send(&42, 100).unwrap();
-    sender2.send(&42, 200).unwrap();
+    sender1.send(42, 100).unwrap();
+    sender2.send(42, 200).unwrap();
 }
 
 #[tokio::test]
 async fn test_string_id_distribution() {
     let (sender, mut receivers) =
-        unbounded_sticky_channel::<String, i32>(NonZeroUsize::new(10).unwrap());
+        unbounded_sticky_channel::<&str, i32>(NonZeroUsize::new(10).unwrap());
 
     let test_strings = vec![
         "short",
@@ -468,7 +466,7 @@ async fn test_string_id_distribution() {
     let mut routing_map = HashMap::new();
 
     for (i, s) in test_strings.iter().enumerate() {
-        sender.send(&s.to_string(), i as i32).unwrap();
+        sender.send(s, i as i32).unwrap();
     }
     drop(sender);
 
@@ -491,8 +489,8 @@ async fn test_recv_many_edge_cases() {
     let (sender, mut receivers) =
         unbounded_sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap());
 
-    sender.send(&0, 1).unwrap();
-    sender.send(&0, 2).unwrap();
+    sender.send(0, 1).unwrap();
+    sender.send(0, 2).unwrap();
     drop(sender);
 
     let mut buffer = Vec::new();
@@ -516,8 +514,8 @@ async fn test_bounded_basic_functionality() {
 
     assert_eq!(receivers.len(), 2);
 
-    sender.send(&42, "hello".to_string()).await.unwrap();
-    sender.send(&43, "world".to_string()).await.unwrap();
+    sender.send(42, "hello".to_string()).await.unwrap();
+    sender.send(43, "world".to_string()).await.unwrap();
 
     let mut messages = Vec::new();
     for receiver in &mut receivers {
@@ -535,10 +533,10 @@ async fn test_bounded_basic_functionality() {
 async fn test_bounded_capacity_full() {
     let (sender, mut receivers) = sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap(), 2);
 
-    sender.try_send(&0, 1).unwrap();
-    sender.try_send(&0, 2).unwrap();
+    sender.try_send(0, 1).unwrap();
+    sender.try_send(0, 2).unwrap();
 
-    let result = sender.try_send(&0, 3);
+    let result = sender.try_send(0, 3);
     assert!(matches!(result, Err(SendError::ChannelFull(_))));
     if let Err(SendError::ChannelFull(value)) = result {
         assert_eq!(value, 3);
@@ -547,18 +545,18 @@ async fn test_bounded_capacity_full() {
     let msg1 = receivers[0].recv().await.unwrap();
     assert_eq!(msg1, 1);
 
-    sender.try_send(&0, 4).unwrap();
+    sender.try_send(0, 4).unwrap();
 }
 
 #[tokio::test]
 async fn test_bounded_deterministic_routing() {
-    let (sender, mut receivers) = sticky_channel::<String, i32>(NonZeroUsize::new(3).unwrap(), 5);
+    let (sender, mut receivers) = sticky_channel::<&str, i32>(NonZeroUsize::new(3).unwrap(), 5);
 
     let test_ids = vec!["user1", "user2", "user3", "user1", "user2"];
     let mut routing_map: HashMap<String, usize> = HashMap::new();
 
     for (i, id) in test_ids.iter().enumerate() {
-        sender.send(&id.to_string(), i as i32).await.unwrap();
+        sender.send(id, i as i32).await.unwrap();
     }
 
     drop(sender);
@@ -589,7 +587,7 @@ async fn test_bounded_send_after_receiver_dropped() {
 
     drop(receivers);
 
-    let result = sender.send(&42, 100).await;
+    let result = sender.send(42, 100).await;
     assert!(matches!(result, Err(SendError::ChannelClosed(_))));
     if let Err(SendError::ChannelClosed(value)) = result {
         assert_eq!(value, 100);
@@ -602,7 +600,7 @@ async fn test_bounded_try_send_after_receiver_dropped() {
 
     drop(receivers);
 
-    let result = sender.try_send(&42, 100);
+    let result = sender.try_send(42, 100);
     assert!(matches!(result, Err(SendError::ChannelClosed(_))));
     if let Err(SendError::ChannelClosed(value)) = result {
         assert_eq!(value, 100);
@@ -614,7 +612,7 @@ async fn test_bounded_recv_many() {
     let (sender, mut receivers) = sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap(), 10);
 
     for i in 0..5 {
-        sender.send(&0, i).await.unwrap();
+        sender.send(0, i).await.unwrap();
     }
     drop(sender);
 
@@ -632,12 +630,12 @@ async fn test_bounded_recv_many() {
 async fn test_bounded_receiver_close() {
     let (sender, mut receivers) = sticky_channel::<i32, i32>(NonZeroUsize::new(1).unwrap(), 5);
 
-    sender.send(&42, 100).await.unwrap();
-    sender.send(&42, 200).await.unwrap();
+    sender.send(42, 100).await.unwrap();
+    sender.send(42, 200).await.unwrap();
 
     receivers[0].close();
 
-    let result = sender.send(&42, 300).await;
+    let result = sender.send(42, 300).await;
     assert!(matches!(result, Err(SendError::ChannelClosed(_))));
 
     let msg1 = receivers[0].recv().await;
@@ -664,7 +662,7 @@ async fn test_bounded_concurrent_senders() {
     let task1 = tokio::spawn(async move {
         barrier1.wait().await;
         for i in 0..50 {
-            sender1.send(&(i * 3), i * 3).await.unwrap();
+            sender1.send(i * 3, i * 3).await.unwrap();
         }
     });
 
@@ -672,7 +670,7 @@ async fn test_bounded_concurrent_senders() {
     let task2 = tokio::spawn(async move {
         barrier2.wait().await;
         for i in 0..50 {
-            sender2.send(&(i * 3 + 1), i * 3 + 1).await.unwrap();
+            sender2.send(i * 3 + 1, i * 3 + 1).await.unwrap();
         }
     });
 
@@ -680,7 +678,7 @@ async fn test_bounded_concurrent_senders() {
     let task3 = tokio::spawn(async move {
         barrier3.wait().await;
         for i in 0..50 {
-            sender3.send(&(i * 3 + 2), i * 3 + 2).await.unwrap();
+            sender3.send(i * 3 + 2, i * 3 + 2).await.unwrap();
         }
     });
 

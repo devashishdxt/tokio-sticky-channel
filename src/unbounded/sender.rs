@@ -25,7 +25,7 @@ where
     /// If the receive half of the channel is closed, either due to [`close`](crate::UnboundedReceiver::close) being called or
     /// the [`UnboundedReceiver`](crate::UnboundedReceiver) having been dropped, this function returns an error. The error includes the
     /// value passed to `send`.
-    pub fn send(&self, id: &ID, message: T) -> Result<(), SendError<T>> {
+    pub fn send(&self, id: ID, message: T) -> Result<(), SendError<T>> {
         match compute_route_id(id, self.consumers.len(), &self.build_hasher) {
             Ok(route_id) => match self.consumers.get(route_id) {
                 Some(sender) => sender

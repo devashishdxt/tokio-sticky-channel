@@ -4,7 +4,7 @@ use std::{
 };
 
 pub fn compute_route_id<ID, S>(
-    id: &ID,
+    id: ID,
     num_consumers: usize,
     build_hasher: &S,
 ) -> Result<usize, TryFromIntError>

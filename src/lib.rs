@@ -24,14 +24,14 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     // Create an unbounded sticky channel with 3 consumers
-//!     let (sender, mut receivers) = unbounded_sticky_channel::<String, i32>(
+//!     let (sender, mut receivers) = unbounded_sticky_channel::<&str, i32>(
 //!         NonZeroUsize::new(3).unwrap()
 //!     );
 //!
 //!     // Send messages with IDs - same ID always goes to same receiver
-//!     sender.send(&"user-123".to_string(), 42).unwrap();
-//!     sender.send(&"user-456".to_string(), 24).unwrap();
-//!     sender.send(&"user-123".to_string(), 84).unwrap(); // Same receiver as first message
+//!     sender.send("user-123", 42).unwrap();
+//!     sender.send("user-456", 24).unwrap();
+//!     sender.send("user-123", 84).unwrap(); // Same receiver as first message
 //!
 //!     // Receive messages from different consumers
 //!     for receiver in &mut receivers {
@@ -51,17 +51,17 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     // Create a bounded sticky channel with 3 consumers and capacity of 100 per channel
-//!     let (sender, mut receivers) = sticky_channel::<String, i32>(
+//!     let (sender, mut receivers) = sticky_channel::<&str, i32>(
 //!         NonZeroUsize::new(3).unwrap(),
 //!         100
 //!     );
 //!
 //!     // Send messages with IDs - will block if target channel is full
-//!     sender.send(&"user-123".to_string(), 42).await.unwrap();
-//!     sender.send(&"user-456".to_string(), 24).await.unwrap();
+//!     sender.send("user-123", 42).await.unwrap();
+//!     sender.send("user-456", 24).await.unwrap();
 //!
 //!     // Try to send without blocking - returns error if channel is full
-//!     match sender.try_send(&"user-789".to_string(), 99) {
+//!     match sender.try_send("user-789", 99) {
 //!         Ok(_) => println!("Message sent successfully"),
 //!         Err(e) => println!("Failed to send: {}", e),
 //!     }

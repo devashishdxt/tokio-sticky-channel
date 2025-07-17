@@ -24,7 +24,7 @@ where
     /// If the receive half of the channel is closed, either due to [`close`](crate::Receiver::close) being called or
     /// the [`Receiver`](crate::Receiver) having been dropped, this function returns an error. The error includes the
     /// value passed to `send`.
-    pub async fn send(&self, id: &ID, message: T) -> Result<(), SendError<T>> {
+    pub async fn send(&self, id: ID, message: T) -> Result<(), SendError<T>> {
         match compute_route_id(id, self.consumers.len(), &self.build_hasher) {
             Ok(route_id) => match self.consumers.get(route_id) {
                 Some(sender) => sender
@@ -44,7 +44,7 @@ where
     /// If the receive half of the channel is closed, either due to [`close`](crate::Receiver::close) being called or
     /// the [`Receiver`](crate::Receiver) having been dropped, this function returns an error. The error includes the
     /// value passed to `try_send`.
-    pub fn try_send(&self, id: &ID, message: T) -> Result<(), SendError<T>> {
+    pub fn try_send(&self, id: ID, message: T) -> Result<(), SendError<T>> {
         match compute_route_id(id, self.consumers.len(), &self.build_hasher) {
             Ok(route_id) => match self.consumers.get(route_id) {
                 Some(sender) => sender.try_send(message).map_err(|err| match err {
