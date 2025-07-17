@@ -8,7 +8,7 @@ homepage = "https://github.com/devashishdxt/tokio-sticky-channel"
 repository = "https://github.com/devashishdxt/tokio-sticky-channel"
 documentation = "https://docs.rs/tokio-sticky-channel"
 categories = ["asynchronous", "concurrency", "data-structures"]
-keywords = ["tokio", "channel", "async", "mpsc", "sticky", "routing"]
+keywords = ["tokio", "channel", "async", "sticky", "routing"]
 readme = "README.md"
 edition = "2024"
 
